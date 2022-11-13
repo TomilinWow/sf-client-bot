@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 
 const token = '5752394214:AAG-Kkj3SVQ24n-2oRcokQCorYOFz3a-wag';
-const webAppUrl = 'https://harmonious-druid-0b7271.netlify.app/';
+const webAppUrl = 'https://harmonious-druid-0b7271.netlify.app';
 
 const bot = new TelegramBot(token, {polling: true});
 const app = express();
@@ -11,61 +11,49 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+bot.setMyCommands([
+    {command: '/start', description: 'Начальное приветствие'},
+    {command: '/code', description: 'Код доступа'},
+])
+
+let current_code = '123'
+let premessage;
+
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
-
+    console.log(msg)
     if(text === '/start') {
-        await bot.sendMessage(chatId, 'Ниже появится кнопка, заполни форму', {
-            reply_markup: {
-                keyboard: [
-                    [{text: 'Заполнить форму', web_app: {url: webAppUrl + '/form'}}]
-                ]
-            }
-        })
-
-        await bot.sendMessage(chatId, 'Заходи в наш интернет магазин по кнопке ниже', {
-            reply_markup: {
-                inline_keyboard: [
-                    [{text: 'Сделать заказ', web_app: {url: webAppUrl}}]
-                ]
-            }
-        })
+        await bot.sendMessage(chatId, 'Добро пожаловать в админку Street Family!!!')
+        await bot.sendMessage(chatId, 'Напишите /code, чтобы ввести свой код доступа')
+        premessage = '/start'
     }
 
-    if(msg?.web_app_data?.data) {
-        try {
-            const data = JSON.parse(msg?.web_app_data?.data)
-            console.log(data)
-            await bot.sendMessage(chatId, 'Спасибо за обратную связь!')
-            await bot.sendMessage(chatId, 'Ваша страна: ' + data?.country);
-            await bot.sendMessage(chatId, 'Ваша улица: ' + data?.street);
-
-            setTimeout(async () => {
-                await bot.sendMessage(chatId, 'Всю информацию вы получите в этом чате');
-            }, 3000)
-        } catch (e) {
-            console.log(e);
+    if(premessage === '/code') {
+        // запрос в бд
+        // в будущем
+        if (current_code === text) {
+            premessage = ''
+            await bot.sendMessage(chatId, 'Вы вошли!', {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{text: "Открыть приложение", web_app: {url: webAppUrl}}]
+                    ]
+                }
+            })
+        } else {
+            await bot.sendMessage(chatId, 'Неправильный код, попробуйте снова!\n/code')
+            premessage = ''
         }
+    }
+
+    if(text === '/code') {
+        await bot.sendMessage(chatId, 'Ваш код доступа:')
+        premessage = '/code'
+
     }
 });
 
-app.post('/web-data', async (req, res) => {
-    const {queryId, products = [], totalPrice} = req.body;
-    try {
-        await bot.answerWebAppQuery(queryId, {
-            type: 'article',
-            id: queryId,
-            title: 'Успешная покупка',
-            input_message_content: {
-                message_text: ` Поздравляю с покупкой, вы приобрели товар на сумму ${totalPrice}, ${products.map(item => item.title).join(', ')}`
-            }
-        })
-        return res.status(200).json({});
-    } catch (e) {
-        return res.status(500).json({})
-    }
-})
 
 const PORT = 8000;
 
