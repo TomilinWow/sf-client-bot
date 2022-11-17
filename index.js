@@ -15,8 +15,6 @@ bot.setMyCommands([
     {command: '/start', description: 'Начальное приветствие'},
 ])
 
-let current_code = '123'
-
 
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
